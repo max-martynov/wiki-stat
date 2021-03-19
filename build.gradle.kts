@@ -10,6 +10,9 @@ version = "1.0-SNAPSHOT"
 repositories {
     mavenCentral()
     jcenter()
+    application {
+        mainClass.set("ru.senin.kotlin.wiki.mainKt")
+    }
 }
 
 dependencies {
@@ -19,6 +22,10 @@ dependencies {
 
     testImplementation("org.junit.jupiter:junit-jupiter-engine:5.7.0")
     testImplementation(kotlin("test-junit5"))
+}
+
+tasks.withType<Test>().all {
+    useJUnitPlatform()
 }
 
 tasks.withType<KotlinCompile>() {
