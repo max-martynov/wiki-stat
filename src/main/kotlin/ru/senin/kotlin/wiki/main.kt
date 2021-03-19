@@ -3,6 +3,8 @@ package ru.senin.kotlin.wiki
 import com.apurebase.arkenv.Arkenv
 import com.apurebase.arkenv.argument
 import com.apurebase.arkenv.parse
+import ru.senin.kotlin.wiki.parser.Bz2XMLParser
+import ru.senin.kotlin.wiki.parser.Parser
 import java.io.File
 import kotlin.time.measureTime
 
@@ -43,7 +45,13 @@ fun main(args: Array<String>) {
         }
 
         val duration = measureTime {
-            // TODO
+            for (input in parameters.inputs) {
+                val parser: Parser = Bz2XMLParser(input.inputStream())
+                parser.onPage { page ->
+                    println(page)
+                }
+                parser.parse()
+            }
         }
         println("Time: ${duration.inMilliseconds} ms")
 
