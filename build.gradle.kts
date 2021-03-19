@@ -11,7 +11,7 @@ repositories {
     mavenCentral()
     jcenter()
     application {
-        mainClass.set("ru.senin.kotlin.wiki.mainKt")
+        mainClass.set("ru.senin.kotlin.wiki.MainKt")
     }
 }
 
