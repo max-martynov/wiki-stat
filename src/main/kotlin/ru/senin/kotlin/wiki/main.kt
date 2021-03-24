@@ -38,7 +38,7 @@ class Parameters : Arkenv() {
 
 lateinit var parameters: Parameters
 
-fun processFile(input: File, numberOfThreads: Int) {
+fun processFile(input: File, numberOfThreads: Int) : PageStats {
     val parser: Parser = Bz2XMLParser(input.inputStream())
     val futures = List(numberOfThreads) {
         CompletableFuture<PageStats>()
@@ -63,7 +63,35 @@ fun processFile(input: File, numberOfThreads: Int) {
             result.merge(stats)
         }
 
-    println(result.bodyStats.getTopK(300))
+    return result
+}
+
+fun printResultToFile(result: PageStats, file: File) {
+    val writer = file.writer()
+    writer.write("Топ-300 слов в заголовках статей:\n")
+    result.titleStats.getTopK(300).forEach { writer.write("${it.second} ${it.first}\n") }
+    writer.write("\n")
+
+    writer.write("Топ-300 слов в статьях:\n")
+    result.bodyStats.getTopK(300).forEach { writer.write("${it.second} ${it.first}\n") }
+    writer.write("\n")
+
+    writer.write("Распределение статей по размеру:\n")
+    val firstNotZeroSize = result.sizeStats.sizeCount.indexOfFirst { it != 0 }
+    val lastNotZeroSize = result.sizeStats.sizeCount.indexOfLast { it != 0 }
+
+    for (i in firstNotZeroSize..lastNotZeroSize)
+        writer.write("$i ${result.sizeStats.sizeCount[i]}\n")
+    writer.write("\n")
+
+    writer.write("Распределение статей по времени:\n")
+    val firstNotZeroYear = result.yearStats.yearsAll.indexOfFirst { it != 0 }
+    val lastNotZeroYear = result.yearStats.yearsAll.indexOfLast { it != 0 }
+
+    for (i in firstNotZeroYear..lastNotZeroYear) {
+        writer.write("${i + result.yearStats.startYear} ${result.yearStats.yearsAll[i]}\n")
+    }
+    writer.close()
 }
 
 fun main(args: Array<String>) {
@@ -76,9 +104,12 @@ fun main(args: Array<String>) {
         }
 
         val duration = measureTime {
-            for (input in parameters.inputs) {
+            val stats = parameters.inputs.map { input ->
                 processFile(input, parameters.threads)
-            }
+            }.mergeAll()
+
+            val file = File(parameters.output)
+            printResultToFile(stats, file)
         }
         println("Time: ${duration.inMilliseconds} ms")
 
