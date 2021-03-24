@@ -1,11 +1,14 @@
 package ru.senin.kotlin.wiki
 
+import ru.senin.kotlin.wiki.data.*
+import ru.senin.kotlin.wiki.parser.*
+import ru.senin.kotlin.wiki.workers.*
+
 import com.apurebase.arkenv.Arkenv
 import com.apurebase.arkenv.argument
 import com.apurebase.arkenv.parse
-import ru.senin.kotlin.wiki.parser.Bz2XMLParser
-import ru.senin.kotlin.wiki.parser.Parser
 import java.io.File
+import java.util.concurrent.CompletableFuture
 import kotlin.time.measureTime
 
 class Parameters : Arkenv() {
@@ -35,6 +38,34 @@ class Parameters : Arkenv() {
 
 lateinit var parameters: Parameters
 
+fun processFile(input: File, numberOfThreads: Int) {
+    val parser: Parser = Bz2XMLParser(input.inputStream())
+    val futures = List(numberOfThreads) {
+        CompletableFuture<PageStats>()
+    }
+    val pagesChannel = Channel<Page>()
+    val pool = futures.map {
+        Thread(DataWorker(pagesChannel, it))
+    }
+    parser.onPage { page ->
+        pagesChannel.add(page)
+    }
+
+    pool.forEach { it.start() }
+    parser.parse()
+    pagesChannel.close()
+
+    val result = PageStats()
+
+    futures
+        .mapNotNull { it.get() }
+        .forEach { stats ->
+            result.merge(stats)
+        }
+
+    println(result.bodyStats.getTopK(300))
+}
+
 fun main(args: Array<String>) {
     try {
         parameters = Parameters().parse(args)
@@ -46,11 +77,7 @@ fun main(args: Array<String>) {
 
         val duration = measureTime {
             for (input in parameters.inputs) {
-                val parser: Parser = Bz2XMLParser(input.inputStream())
-                parser.onPage { page ->
-                    println(page)
-                }
-                parser.parse()
+                processFile(input, parameters.threads)
             }
         }
         println("Time: ${duration.inMilliseconds} ms")
