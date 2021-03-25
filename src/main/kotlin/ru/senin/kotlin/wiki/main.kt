@@ -9,6 +9,7 @@ import com.apurebase.arkenv.argument
 import com.apurebase.arkenv.parse
 import java.io.File
 import java.util.concurrent.CompletableFuture
+import java.util.concurrent.LinkedBlockingDeque
 import kotlin.time.measureTime
 
 class Parameters : Arkenv() {
@@ -43,17 +44,17 @@ fun processFile(input: File, numberOfThreads: Int) : PageStats {
     val futures = List(numberOfThreads) {
         CompletableFuture<PageStats>()
     }
-    val pagesChannel = Channel<Page>()
+    val pagesQueue = LinkedBlockingDeque<Page>()
     val pool = futures.map {
-        Thread(DataWorker(pagesChannel, it))
+        Thread(DataWorker(pagesQueue, it))
     }
     parser.onPage { page ->
-        pagesChannel.add(page)
+        pagesQueue.add(page)
     }
 
     pool.forEach { it.start() }
     parser.parse()
-    pagesChannel.close()
+    pool.forEach { it.interrupt() }
 
     val result = PageStats()
 
@@ -77,20 +78,22 @@ fun printResultToFile(result: PageStats, file: File) {
     writer.write("\n")
 
     writer.write("Распределение статей по размеру:\n")
-    val firstNotZeroSize = result.sizeStats.sizeCount.indexOfFirst { it != 0 }
-    val lastNotZeroSize = result.sizeStats.sizeCount.indexOfLast { it != 0 }
+    val firstNotZeroSize = result.sizeStats.sizeCount.keys.minOrNull()
+    val lastNotZeroSize = result.sizeStats.sizeCount.keys.maxOrNull()
 
-    for (i in firstNotZeroSize..lastNotZeroSize)
-        writer.write("$i ${result.sizeStats.sizeCount[i]}\n")
+    if (firstNotZeroSize != null && lastNotZeroSize != null)
+        for (i in firstNotZeroSize..lastNotZeroSize)
+            writer.write("$i ${result.sizeStats.sizeCount[i] ?: 0}\n")
     writer.write("\n")
 
     writer.write("Распределение статей по времени:\n")
     val firstNotZeroYear = result.yearStats.yearsAll.indexOfFirst { it != 0 }
     val lastNotZeroYear = result.yearStats.yearsAll.indexOfLast { it != 0 }
 
-    for (i in firstNotZeroYear..lastNotZeroYear) {
-        writer.write("${i + result.yearStats.startYear} ${result.yearStats.yearsAll[i]}\n")
-    }
+    if (firstNotZeroYear != -1)
+        for (i in firstNotZeroYear..lastNotZeroYear)
+            writer.write("${i + result.yearStats.startYear} ${result.yearStats.yearsAll[i]}\n")
+
     writer.close()
 }
 

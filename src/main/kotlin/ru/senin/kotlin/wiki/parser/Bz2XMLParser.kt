@@ -25,10 +25,10 @@ private class PageHandler(private val pageCallback: (Page) -> Unit) : DefaultHan
 
     private var builder: PageBuilder? = null
 
-    private var elementValue: String = ""
+    private val rowsList = mutableListOf<String>()
 
     override fun characters(ch: CharArray, start: Int, length: Int) {
-        elementValue = String(ch, start, length)
+        rowsList.add(String(ch, start, length))
     }
 
     override fun startElement(uri: String, localName: String, qName: String, attributes: Attributes) {
@@ -45,13 +45,16 @@ private class PageHandler(private val pageCallback: (Page) -> Unit) : DefaultHan
     }
 
     override fun endElement(uri: String, localName: String, qName: String) {
+        val elementValue = rowsList.joinToString("")
+        rowsList.clear()
+
         when (qName) {
             TITLE_TAG -> builder?.title = elementValue
             TEXT_TAG -> builder?.contentsText = elementValue
             TIMESTAMP_TAG -> {
                 try {
                     val timestamp = LocalDateTime.parse(
-                        elementValue.dropLast(1), // dirty hack to comply with standard
+                        elementValue.trim().dropLast(1), // dirty hack to comply with standard
                         DateTimeFormatter.ISO_LOCAL_DATE_TIME
                     )
                     builder?.timestamp = timestamp.atOffset(ZoneOffset.UTC).toZonedDateTime()

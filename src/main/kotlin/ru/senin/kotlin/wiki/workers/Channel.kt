@@ -1,6 +1,7 @@
 package ru.senin.kotlin.wiki.workers
 
 import java.util.*
+import java.util.concurrent.*
 
 class ClosedChannelException : IllegalStateException("Channel was closed")
 
@@ -10,16 +11,14 @@ class Channel<T> {
     @Volatile
     private var closed = false
 
-    fun isClosed(): Boolean = synchronized(lock) {
-        closed
-    }
+    fun isClosed(): Boolean = closed
 
     val size: Int
         get() = synchronized(lock) {
             queue.size
         }
 
-    private val queue: Queue<T> = LinkedList()
+    private val queue: BlockingQueue<T> = LinkedBlockingQueue()
 
     fun add(elem: T) = synchronized(lock) {
         if (closed)
@@ -45,9 +44,8 @@ class Channel<T> {
         queue.poll()
     }
 
-    fun close() = synchronized(lock) {
+    fun close() {
         closed = true
-        lock.notifyAll()
     }
 
     operator fun iterator(): Iterator<T> =
