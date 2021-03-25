@@ -76,11 +76,12 @@ private class PageHandler(private val pageCallback: (Page) -> Unit) : DefaultHan
 class Bz2XMLParser(private val inputStream: InputStream) : Parser {
     private val factory = SAXParserFactory.newInstance()
     private val saxParser = factory.newSAXParser()
+    private val bufferSize = 8192 * 8
 
     private lateinit var pageCallback: (Page) -> Unit
 
     private fun unpack() =
-        BZip2CompressorInputStream(BufferedInputStream(inputStream))
+        BZip2CompressorInputStream(BufferedInputStream(inputStream, bufferSize))
 
     override fun parse() {
         saxParser.parse(unpack(), PageHandler(pageCallback))

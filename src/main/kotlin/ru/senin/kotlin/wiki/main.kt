@@ -78,12 +78,12 @@ fun printResultToFile(result: PageStats, file: File) {
     writer.write("\n")
 
     writer.write("Распределение статей по размеру:\n")
-    val firstNotZeroSize = result.sizeStats.sizeCount.keys.minOrNull()
-    val lastNotZeroSize = result.sizeStats.sizeCount.keys.maxOrNull()
+    val firstNotZeroSize = result.sizeStats.sizeCount.indexOfFirst { it != 0 }
+    val lastNotZeroSize = result.sizeStats.sizeCount.indexOfLast { it != 0 }
 
-    if (firstNotZeroSize != null && lastNotZeroSize != null)
+    if (firstNotZeroSize != -1)
         for (i in firstNotZeroSize..lastNotZeroSize)
-            writer.write("$i ${result.sizeStats.sizeCount[i] ?: 0}\n")
+            writer.write("$i ${result.sizeStats.sizeCount[i]}\n")
     writer.write("\n")
 
     writer.write("Распределение статей по времени:\n")

@@ -1,20 +1,45 @@
 package ru.senin.kotlin.wiki.data
 
 import java.time.LocalDateTime
-import java.util.*
 import kotlin.collections.HashMap
-import kotlin.math.log
-import kotlin.math.log10
+
+private fun Char.isRussianLetter() =
+    this in 'а'..'я' || this in 'А'..'Я'
 
 private fun String.isRussianWord() =
-    count { it in 'а'..'я' } >= 3
+    count { it.isRussianLetter() } >= 3
+
+// returns [length] if element not found
+private inline fun String.indexOfFirstSince(startIndex: Int, delimPredicate: (Char) -> Boolean): Int {
+    for (i in startIndex until length)
+        if (delimPredicate(get(i)))
+            return i
+    return length
+}
+
+private inline fun String.split(delimPredicate: (Char) -> Boolean): List<String> {
+    if (isEmpty())
+        return emptyList()
+    val result = mutableListOf<String>()
+    var curIndex = -1
+    while (curIndex < length) {
+        val nextIndex = this.indexOfFirstSince(curIndex + 1, delimPredicate)
+        if (curIndex + 1 < nextIndex) {
+            val substr = substring(curIndex + 1, nextIndex)
+            result.add(substr)
+        }
+        curIndex = nextIndex
+    }
+    return result
+}
 
 class WordStats {
     private val wordCnt: MutableMap<String, Int> = HashMap()
 
     // O(1)
     private fun add(word: String) {
-        wordCnt[word] = wordCnt.getOrDefault(word, 0) + 1
+        val prev = wordCnt[word] ?: 0
+        wordCnt[word] = prev + 1
     }
 
     infix fun merge(other: WordStats) {
@@ -35,31 +60,29 @@ class WordStats {
     }
 
     fun consume(str: String) {
-        str.toLowerCase()
+        str
             .split(" ")
             .filter { it.isRussianWord() }
             .forEach { token ->
-                token.split("[^а-я]".toRegex())
+                token.split { !it.isRussianLetter() }
                     .filter { it.length >= 3 }
-                    .forEach { add(it) }
+                    .forEach { add(it.toLowerCase()) }
             }
     }
 }
 
 class SizeStats {
     private val maxLogPageSize = 1000
-    val sizeCount = HashMap<Int, Int>()
+    val sizeCount = IntArray(maxLogPageSize)
 
     fun consume(size: Long) {
         val logSize = size.toString().length - 1
-        assert(logSize >= 0L)
-        sizeCount[logSize] = sizeCount.getOrDefault(logSize, 0) + 1
+        sizeCount[logSize]++
     }
 
     infix fun merge(other: SizeStats) {
-        other.sizeCount.entries.forEach { (size, cnt) ->
-            sizeCount[size] = sizeCount.getOrDefault(size, 0) + cnt
-        }
+        for (i in sizeCount.indices)
+            sizeCount[i] += other.sizeCount[i]
     }
 }
 
