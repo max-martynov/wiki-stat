@@ -4,36 +4,6 @@ import java.time.LocalDateTime
 import kotlin.collections.HashMap
 import kotlin.random.Random
 
-private fun Char.isRussianLetter() =
-    this in 'а'..'я' || this in 'А'..'Я'
-
-private fun String.isRussianWord() =
-    count { it.isRussianLetter() } >= 3
-
-// returns [length] if element not found
-private inline fun String.indexOfFirstSince(startIndex: Int, delimPredicate: (Char) -> Boolean): Int {
-    for (i in startIndex until length)
-        if (delimPredicate(get(i)))
-            return i
-    return length
-}
-
-private inline fun String.split(delimPredicate: (Char) -> Boolean): List<String> {
-    if (isEmpty())
-        return emptyList()
-    val result = mutableListOf<String>()
-    var curIndex = -1
-    while (curIndex < length) {
-        val nextIndex = this.indexOfFirstSince(curIndex + 1, delimPredicate)
-        if (curIndex + 1 < nextIndex) {
-            val substr = substring(curIndex + 1, nextIndex)
-            result.add(substr)
-        }
-        curIndex = nextIndex
-    }
-    return result
-}
-
 class WordStats {
     private val wordCnt: MutableMap<String, Int> = HashMap()
 
@@ -181,4 +151,34 @@ private fun <T> partition(list: MutableList<T>, comparator: Comparator<T>, l: In
         i++.also { j-- }
     }
     return j
+}
+
+private fun Char.isRussianLetter() =
+    this in 'а'..'я' || this in 'А'..'Я'
+
+private fun String.isRussianWord() =
+    count { it.isRussianLetter() } >= 3
+
+// returns [length] if element not found
+private inline fun String.indexOfFirstSince(startIndex: Int, delimPredicate: (Char) -> Boolean): Int {
+    for (i in startIndex until length)
+        if (delimPredicate(get(i)))
+            return i
+    return length
+}
+
+private inline fun String.split(delimPredicate: (Char) -> Boolean): List<String> {
+    if (isEmpty())
+        return emptyList()
+    val result = mutableListOf<String>()
+    var curIndex = -1
+    while (curIndex < length) {
+        val nextIndex = this.indexOfFirstSince(curIndex + 1, delimPredicate)
+        if (curIndex + 1 < nextIndex) {
+            val substr = substring(curIndex + 1, nextIndex)
+            result.add(substr)
+        }
+        curIndex = nextIndex
+    }
+    return result
 }
