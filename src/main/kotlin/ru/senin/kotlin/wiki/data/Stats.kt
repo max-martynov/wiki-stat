@@ -6,16 +6,23 @@ import kotlin.random.Random
 
 class WordStats {
     private val wordCnt: MutableMap<String, Int> = HashMap()
-
+    private var maxCnt = 0
     // O(1)
-    private fun add(word: String) {
+    private fun add(word: String, delta: Int = 1) {
+        if (word.length > 16)
+            return
         val prev = wordCnt[word] ?: 0
-        wordCnt[word] = prev + 1
+        if ((prev + delta) shl 13 < maxCnt) {
+            wordCnt.remove(word)
+            return
+        }
+        wordCnt[word] = prev + delta
+        maxCnt = maxOf(maxCnt, prev + delta)
     }
 
     infix fun merge(other: WordStats) {
         other.wordCnt.entries.forEach { (word, cnt) ->
-            wordCnt[word] = wordCnt.getOrDefault(word, 0) + cnt
+            add(word, cnt)
         }
     }
 
