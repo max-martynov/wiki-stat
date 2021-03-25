@@ -69,11 +69,17 @@ class WordStats {
                     .forEach { add(it.toLowerCase()) }
             }
     }
+
+    fun topKToString(k: Int): String =
+        getTopK(k)
+            .joinToString(separator = "") {
+                "${it.second} ${it.first}\n"
+            }
 }
 
 class SizeStats {
     private val maxLogPageSize = 1000
-    val sizeCount = IntArray(maxLogPageSize)
+    private val sizeCount = IntArray(maxLogPageSize)
 
     fun consume(size: Long) {
         val logSize = size.toString().length - 1
@@ -84,11 +90,22 @@ class SizeStats {
         for (i in sizeCount.indices)
             sizeCount[i] += other.sizeCount[i]
     }
+
+    override fun toString(): String {
+        val firstNotZeroSize = sizeCount.indexOfFirst { it != 0 }
+        val lastNotZeroSize = sizeCount.indexOfLast { it != 0 }
+
+        return if (firstNotZeroSize != -1)
+            sizeCount.mapIndexed { i, cnt -> "$i $cnt\n" }
+                .subList(firstNotZeroSize, lastNotZeroSize + 1)
+                .joinToString(separator = "")
+        else ""
+    }
 }
 
 class YearStats {
-    val startYear = 2000
-    val yearsAll = IntArray(LocalDateTime.now().year - startYear + 1)
+    private val startYear = 2000
+    private val yearsAll = IntArray(LocalDateTime.now().year - startYear + 1)
 
     fun consume(year: Int) {
         yearsAll[year - startYear]++
@@ -97,6 +114,17 @@ class YearStats {
     infix fun merge(other: YearStats) {
         for (i in yearsAll.indices)
             yearsAll[i] += other.yearsAll[i]
+    }
+
+    override fun toString(): String {
+        val firstNotZeroYear = yearsAll.indexOfFirst { it != 0 }
+        val lastNotZeroYear = yearsAll.indexOfLast { it != 0 }
+
+        return if (lastNotZeroYear != -1)
+            yearsAll.mapIndexed { i, cnt -> "${i + startYear} $cnt\n" }
+                .subList(firstNotZeroYear, lastNotZeroYear + 1)
+                .joinToString(separator = "")
+        else ""
     }
 }
 

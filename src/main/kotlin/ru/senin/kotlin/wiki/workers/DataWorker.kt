@@ -1,9 +1,11 @@
 package ru.senin.kotlin.wiki.workers
 
 import ru.senin.kotlin.wiki.data.*
+import ru.senin.kotlin.wiki.parser.Parser
 
 import java.util.concurrent.BlockingQueue
 import java.util.concurrent.CompletableFuture
+import java.util.concurrent.LinkedBlockingDeque
 
 class DataWorker(
     private val queue: BlockingQueue<Page>,
@@ -28,4 +30,26 @@ class DataWorker(
     private fun process(page: Page) {
         stats.consume(page)
     }
+}
+
+fun processFile(parser: Parser, numberOfThreads: Int): PageStats {
+    val results = List(numberOfThreads) {
+        CompletableFuture<PageStats>()
+    }
+    val pagesQueue = LinkedBlockingDeque<Page>()
+    parser.onPage { page ->
+        pagesQueue.add(page)
+    }
+
+    val pool = results.map { result ->
+        Thread(DataWorker(pagesQueue, result))
+    }
+
+    pool.forEach { it.start() }
+    parser.parse()
+    pool.forEach { it.interrupt() }
+
+    return results
+        .mapNotNull { it.get() }
+        .mergeAll()
 }
