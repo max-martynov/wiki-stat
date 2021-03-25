@@ -19,6 +19,7 @@ dependencies {
     implementation("com.apurebase:arkenv:3.1.0")
     implementation("org.apache.commons:commons-compress:1.20")
     implementation(kotlin("reflect"))
+    implementation("com.ximpleware", "vtd-xml", "2.11")
 
     testImplementation("org.junit.jupiter:junit-jupiter-engine:5.7.0")
     testImplementation(kotlin("test-junit5"))
