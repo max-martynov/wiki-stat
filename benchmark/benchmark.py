@@ -6,13 +6,15 @@ from os import listdir
 from os.path import isfile, join
 import time
 import plotly.graph_objs as go
+import argparse
 
-MIN_THREADS = 1
-MAX_THREADS = 4
+DEFAULT_MIN_THREADS = 1
+DEFAULT_MAX_THREADS = 4
+DEFAULT_DATA_DIR = "data"
+DEFAULT_OUTPUT_FILE = "benchmark/fig1.png"
 
 
-def get_data():
-    d_dir = "data"
+def get_data(d_dir):
     f_format = ".bz2"
     return [join(d_dir, f) for f in listdir(d_dir) if isfile(join(d_dir, f)) and f.endswith(f_format)]
 
@@ -30,7 +32,7 @@ def measure(data, threads):
     return end - start
 
 
-def build_plot(x, y):
+def build_plot(x, y, output):
     fig = go.Figure()
     fig.add_trace(go.Scatter(x=x, y=y,
                              mode='lines'))
@@ -38,20 +40,32 @@ def build_plot(x, y):
         xaxis_title="threads",
         yaxis_title="time"
     )
-    fig.write_image("benchmark/fig1.png")
+    fig.write_image(output)
 
 
 def main():
-    data = get_data()
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--min", help="min threads number", default=DEFAULT_MIN_THREADS, type=int)
+    parser.add_argument("--max", help="max threads number", default=DEFAULT_MAX_THREADS, type=int)
+    parser.add_argument("--data", help="data directory", default=DEFAULT_DATA_DIR, type=str)
+    parser.add_argument("--out", help="output file", default=DEFAULT_OUTPUT_FILE, type=str)
+    args = parser.parse_args()
+
+    min_threads = args.min
+    max_threads = args.max
+    d_dir = args.data
+    output = args.out
+
+    data = get_data(d_dir)
     x = []
     y = []
-    for threads in range(MIN_THREADS, MAX_THREADS + 1):
+    for threads in range(min_threads, max_threads + 1):
         res = measure(data, threads)
         print("Ran {} threads in {} s".format(threads, res))
         x.append(threads)
         y.append(res)
 
-    build_plot(x, y)
+    build_plot(x, y, output)
 
 
 main()
