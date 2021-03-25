@@ -7,7 +7,6 @@ from os.path import isfile, join
 import time
 import plotly.graph_objs as go
 
-
 MIN_THREADS = 1
 MAX_THREADS = 4
 
