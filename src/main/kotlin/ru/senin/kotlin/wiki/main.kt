@@ -4,18 +4,22 @@ import ru.senin.kotlin.wiki.data.*
 import ru.senin.kotlin.wiki.parser.*
 import ru.senin.kotlin.wiki.workers.*
 
-import com.apurebase.arkenv.Arkenv
-import com.apurebase.arkenv.argument
-import com.apurebase.arkenv.parse
+import com.apurebase.arkenv.*
 import java.io.File
+import java.io.InputStream
+import java.lang.IllegalArgumentException
 import java.lang.Integer.min
 import kotlin.time.measureTime
+
+enum class ParserType {
+    SAX, VTD
+}
 
 class Parameters : Arkenv() {
     val inputs: List<File> by argument("--inputs") {
         description = "Path(s) to bzip2 archived XML file(s) with WikiMedia dump. Comma separated."
         mapping = {
-            it.split(",").map{ name -> File(name) }
+            it.split(",").map { name -> File(name) }
         }
         validate("File does not exist or cannot be read") {
             it.all { file -> file.exists() && file.isFile && file.canRead() }
@@ -34,7 +38,26 @@ class Parameters : Arkenv() {
             it in 1..32
         }
     }
+
+    val parserType: ParserType by argument("--parser", "-p") {
+        description = "Choose preferred parser. " +
+                "Available are: ${ParserType.values().joinToString { it.name }}"
+        defaultValue = { ParserType.SAX }
+        mapping = {
+            when (it) {
+                ParserType.SAX.name -> ParserType.SAX
+                ParserType.VTD.name -> ParserType.VTD
+                else -> throw IllegalArgumentException("Unsupported parser")
+            }
+        }
+    }
 }
+
+fun createParserFactory(parserType: ParserType): (InputStream) -> Parser =
+    when (parserType) {
+        ParserType.SAX -> { input -> SAXParser(input) }
+        ParserType.VTD -> { input -> VTDParser(input) }
+    }
 
 lateinit var parameters: Parameters
 
@@ -73,7 +96,8 @@ fun main(args: Array<String>) {
             val stats = processFiles(
                 parameters.inputs,
                 min(parameters.threads, maxParsingThreads),
-                parameters.threads
+                parameters.threads,
+                createParserFactory(parameters.parserType)
             )
 
             val file = File(parameters.output)
@@ -81,8 +105,7 @@ fun main(args: Array<String>) {
         }
         println("Time: ${duration.inMilliseconds} ms")
 
-    }
-    catch (e: Exception) {
+    } catch (e: Exception) {
         println("Error! ${e.message}")
         throw e
     }

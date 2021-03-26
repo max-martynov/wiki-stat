@@ -1,16 +1,18 @@
 package ru.senin.kotlin.wiki.workers
 
+import org.apache.commons.compress.compressors.bzip2.BZip2CompressorInputStream
 import ru.senin.kotlin.wiki.data.*
-import ru.senin.kotlin.wiki.parser.Bz2XMLParser
 import ru.senin.kotlin.wiki.parser.Parser
-import ru.senin.kotlin.wiki.parser.VTDParser
+import java.io.BufferedInputStream
 import java.io.File
+import java.io.InputStream
 import java.util.concurrent.*
 
 class PageParser(
-        private val files: BlockingQueue<File>,
-        private val pages: BlockingQueue<Page>,
-): Runnable {
+    private val files: BlockingQueue<File>,
+    private val pages: BlockingQueue<Page>,
+    private val parserFactory: (InputStream) -> Parser
+) : Runnable {
     override fun run() {
         while (!files.isEmpty()) {
             val file = files.take()
@@ -18,8 +20,14 @@ class PageParser(
         }
     }
 
+    private val bufferSize = 8192 * 24
+
     private fun processFile(file: File) {
-        val parser = VTDParser(file.inputStream())
+        val parser = parserFactory(
+            BZip2CompressorInputStream(
+                BufferedInputStream(file.inputStream(), bufferSize)
+            )
+        )
         parser.onPage { page ->
             pages.add(page)
         }
@@ -52,7 +60,12 @@ class PageWorker(
     }
 }
 
-fun processFiles(files: List<File>, parserPoolSize: Int, workerPoolSize: Int): PageStats {
+fun processFiles(
+    files: List<File>,
+    parserPoolSize: Int,
+    workerPoolSize: Int,
+    parserFactory: (InputStream) -> Parser
+): PageStats {
     val results = List(workerPoolSize) {
         CompletableFuture<PageStats>()
     }
@@ -60,7 +73,7 @@ fun processFiles(files: List<File>, parserPoolSize: Int, workerPoolSize: Int): P
     val pagesQueue = LinkedBlockingQueue<Page>()
 
     val parsersPool = List(parserPoolSize) {
-        Thread(PageParser(filesQueue, pagesQueue))
+        Thread(PageParser(filesQueue, pagesQueue, parserFactory))
     }
     parsersPool.forEach { it.start() }
 
@@ -73,6 +86,6 @@ fun processFiles(files: List<File>, parserPoolSize: Int, workerPoolSize: Int): P
     workersPool.forEach { it.interrupt() }
 
     return results
-            .mapNotNull { it.get() }
-            .mergeAll()
+        .mapNotNull { it.get() }
+        .mergeAll()
 }

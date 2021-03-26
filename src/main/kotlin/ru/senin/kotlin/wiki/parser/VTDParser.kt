@@ -17,15 +17,10 @@ import java.time.format.DateTimeFormatter
 
 class VTDParser(private val inputStream: InputStream) : Parser {
 
-    private val bufferSize = 8192 * 8
-
     private lateinit var pageCallback: (Page) -> Unit
 
-    private fun unpack() =
-            BZip2CompressorInputStream(BufferedInputStream(inputStream, bufferSize))
-
     override fun parse() {
-        parseXmlUsingVtd(unpack())
+        parseXmlUsingVtd(inputStream)
     }
 
     override fun onPage(callback: (Page) -> Unit) {
