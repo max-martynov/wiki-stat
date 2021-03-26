@@ -3,6 +3,7 @@ package ru.senin.kotlin.wiki.workers
 import ru.senin.kotlin.wiki.data.*
 import ru.senin.kotlin.wiki.parser.Bz2XMLParser
 import ru.senin.kotlin.wiki.parser.Parser
+import ru.senin.kotlin.wiki.parser.VTDParser
 import java.io.File
 import java.util.concurrent.*
 
@@ -18,7 +19,7 @@ class PageParser(
     }
 
     private fun processFile(file: File) {
-        val parser = Bz2XMLParser(file.inputStream())
+        val parser = VTDParser(file.inputStream())
         parser.onPage { page ->
             pages.add(page)
         }
@@ -51,14 +52,14 @@ class PageWorker(
     }
 }
 
-fun processFiles(files: List<File>, numberOfThreads: Int): PageStats {
-    val results = List(numberOfThreads) {
+fun processFiles(files: List<File>, parserPoolSize: Int, workerPoolSize: Int): PageStats {
+    val results = List(workerPoolSize) {
         CompletableFuture<PageStats>()
     }
     val filesQueue = LinkedBlockingQueue(files)
     val pagesQueue = LinkedBlockingQueue<Page>()
 
-    val parsersPool = List(numberOfThreads) {
+    val parsersPool = List(parserPoolSize) {
         Thread(PageParser(filesQueue, pagesQueue))
     }
     parsersPool.forEach { it.start() }

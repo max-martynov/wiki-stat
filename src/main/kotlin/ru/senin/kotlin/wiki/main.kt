@@ -8,8 +8,7 @@ import com.apurebase.arkenv.Arkenv
 import com.apurebase.arkenv.argument
 import com.apurebase.arkenv.parse
 import java.io.File
-import java.util.concurrent.CompletableFuture
-import java.util.concurrent.LinkedBlockingDeque
+import java.lang.Integer.min
 import kotlin.time.measureTime
 
 class Parameters : Arkenv() {
@@ -70,7 +69,11 @@ fun main(args: Array<String>) {
         }
 
         val duration = measureTime {
-            val stats = processFiles(parameters.inputs, parameters.threads)
+            val stats = processFiles(
+                parameters.inputs,
+                min(parameters.threads, 6),
+                parameters.threads
+            )
 
             val file = File(parameters.output)
             printResultToFile(stats, file)
