@@ -16,7 +16,6 @@ import java.time.format.DateTimeFormatter
 
 
 class VTDParser(private val inputStream: InputStream) : Parser {
-    private val vg = VTDGenHuge()
 
     private val bufferSize = 8192 * 8
 
@@ -34,10 +33,14 @@ class VTDParser(private val inputStream: InputStream) : Parser {
     }
 
     private fun parseXmlUsingVtd(inputStream: InputStream) {
-//        val xg = XMLMemMappedBuffer()
-//        vg.setDoc(inputStream)
-//        vg.parseFile()
-//        vg.setDoc(IOUtils.toByteArray(inputStream))
+        val vg = VTDGenHuge()
+        println("FFFFFF")
+        val buffer = VTDInputStreamBuffer(inputStream)
+//        println(buffer.byteAt(0L))
+//        val bf = XMLMemMappedBuffer()
+//        vg.parseFile("src/test/resources/testData/big.xml", false, VTDGenHuge.MEM_MAPPED)
+//        bf.readFile("src/test/resources/testData/big.xml")
+        vg.setDoc(buffer)
         vg.parse(false)
         val vn = vg.nav
         val ap = AutoPilotHuge(vn)
