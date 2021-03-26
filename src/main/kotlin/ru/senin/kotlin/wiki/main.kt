@@ -78,12 +78,7 @@ fun main(args: Array<String>) {
         }
 
         val duration = measureTime {
-            val stats = parameters.inputs.map { input ->
-                processFile(
-                    Bz2XMLParser(input.inputStream()),
-                    parameters.threads
-                )
-            }.mergeAll()
+            val stats = processFiles(parameters.inputs, parameters.threads)
 
             val file = File(parameters.output)
             printResultToFile(stats, file)
