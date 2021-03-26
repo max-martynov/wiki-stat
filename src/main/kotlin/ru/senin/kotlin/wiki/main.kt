@@ -60,6 +60,7 @@ fun printResultToFile(result: PageStats, file: File) {
 }
 
 fun main(args: Array<String>) {
+    val maxParsingThreads = 5
     try {
         parameters = Parameters().parse(args)
 
@@ -71,7 +72,7 @@ fun main(args: Array<String>) {
         val duration = measureTime {
             val stats = processFiles(
                 parameters.inputs,
-                min(parameters.threads, 6),
+                min(parameters.threads, maxParsingThreads),
                 parameters.threads
             )
 
