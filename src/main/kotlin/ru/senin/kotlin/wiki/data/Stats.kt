@@ -4,37 +4,43 @@ import java.time.LocalDateTime
 import kotlin.collections.HashMap
 import kotlin.random.Random
 
-class WordStats {
-    private val wordCnt: MutableMap<String, Int> = HashMap()
-    private var maxCnt = 0
+abstract class WordStats {
+    val wordCnt: MutableMap<String, Int> = HashMap()
+
+    abstract fun add(word: String, delta: Int = 1)
+
+    abstract infix fun merge(other: WordStats)
+
+    abstract fun getTopK(k: Int): List<Pair<String, Int>>
+
+    abstract fun consume(str: String)
+
+    abstract fun topKToString(k: Int): String
+
+}
+
+class DeterminantWordStats: WordStats() {
     // O(1)
-    private fun add(word: String, delta: Int = 1) {
-        if (word.length > 16 || word.startsWith("ю") || word.startsWith("й"))
-            return
+    override fun add(word: String, delta: Int) {
         val prev = wordCnt[word] ?: 0
-        if ((prev + delta) shl 13 < maxCnt) {
-            wordCnt.remove(word)
-            return
-        }
         wordCnt[word] = prev + delta
-        maxCnt = maxOf(maxCnt, prev + delta)
     }
 
-    infix fun merge(other: WordStats) {
+    override infix fun merge(other: WordStats) {
         other.wordCnt.entries.forEach { (word, cnt) ->
             add(word, cnt)
         }
     }
 
     // Optimized to O(n + k * log k) on average
-    private fun getTopK(k: Int): List<Pair<String, Int>> {
+    override fun getTopK(k: Int): List<Pair<String, Int>> {
         val list = wordCnt.entries.map { it.toPair() }.toMutableList()
         val comparator = compareBy<Pair<String, Int>> { -it.second }.then(compareBy { it.first })
         list.findKthElement(minOf(k, list.size), comparator)
         return list.take(k).sortedWith(comparator)
     }
 
-    fun consume(str: String) {
+    override fun consume(str: String) {
         str
             .split(" ")
             .filter { it.isRussianWord() }
@@ -45,11 +51,58 @@ class WordStats {
             }
     }
 
-    fun topKToString(k: Int): String =
+    override fun topKToString(k: Int): String =
         getTopK(k)
             .joinToString(separator = "") {
                 "${it.second} ${it.first}\n"
             }
+}
+
+class RandomWordStats : WordStats() {
+    private var maxCnt = 0
+
+    override fun add(word: String, delta: Int) {
+         if (word.length > 16 || word.startsWith("й"))
+           return
+        val prev = wordCnt[word] ?: 0
+        if ((prev + delta) shl 13 < maxCnt) {
+          wordCnt.remove(word)
+            return
+        }
+        wordCnt[word] = prev + delta
+        maxCnt = maxOf(maxCnt, prev + delta)
+    }
+
+    override infix fun merge(other: WordStats) {
+        other.wordCnt.entries.forEach { (word, cnt) ->
+            add(word, cnt)
+        }
+    }
+
+    // Optimized to O(n + k * log k) on average
+    override fun getTopK(k: Int): List<Pair<String, Int>> {
+        val list = wordCnt.entries.map { it.toPair() }.toMutableList()
+        val comparator = compareBy<Pair<String, Int>> { -it.second }.then(compareBy { it.first })
+        list.findKthElement(minOf(k, list.size), comparator)
+        return list.take(k).sortedWith(comparator)
+    }
+
+    override fun consume(str: String) {
+        str
+                .split(" ")
+                .filter { it.isRussianWord() }
+                .forEach { token ->
+                    token.split { !it.isRussianLetter() }
+                            .filter { it.length >= 3 }
+                            .forEach { add(it.toLowerCase()) }
+                }
+    }
+
+    override fun topKToString(k: Int): String =
+            getTopK(k)
+                    .joinToString(separator = "") {
+                        "${it.second} ${it.first}\n"
+                    }
 }
 
 class SizeStats {
@@ -103,9 +156,19 @@ class YearStats {
     }
 }
 
-class PageStats {
-    val titleStats = WordStats()
-    val bodyStats = WordStats()
+class PageStats(private val optimizations: Boolean) {
+    var titleStats: WordStats
+    var bodyStats: WordStats
+    init {
+        if (optimizations) {
+            titleStats = RandomWordStats()
+            bodyStats = RandomWordStats()
+        }
+        else {
+            titleStats = DeterminantWordStats()
+            bodyStats = DeterminantWordStats()
+        }
+    }
     val sizeStats = SizeStats()
     val yearStats = YearStats()
 
@@ -124,8 +187,8 @@ class PageStats {
     }
 }
 
-fun Iterable<PageStats>.mergeAll(): PageStats {
-    val result = PageStats()
+fun Iterable<PageStats>.mergeAll(optimizations: Boolean): PageStats {
+    val result = PageStats(optimizations)
     forEach { result.merge(it) }
     return result
 }

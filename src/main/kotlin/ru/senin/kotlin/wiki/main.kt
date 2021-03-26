@@ -78,8 +78,7 @@ fun main(args: Array<String>) {
         }
 
         val duration = measureTime {
-            val stats = processFiles(parameters.inputs, parameters.threads)
-
+            val stats = processFiles(parameters.inputs, parameters.threads, parameters.optimizations)
             val file = File(parameters.output)
             printResultToFile(stats, file)
         }

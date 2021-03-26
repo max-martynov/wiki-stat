@@ -28,9 +28,10 @@ class PageParser(
 
 class PageWorker(
     private val queue: BlockingQueue<Page>,
-    private val result: CompletableFuture<PageStats>
+    private val result: CompletableFuture<PageStats>,
+    private val optimizations: Boolean
 ) : Runnable {
-    private val stats = PageStats()
+    private val stats = PageStats(optimizations)
 
     override fun run() {
         try {
@@ -51,7 +52,7 @@ class PageWorker(
     }
 }
 
-fun processFiles(files: List<File>, numberOfThreads: Int): PageStats {
+fun processFiles(files: List<File>, numberOfThreads: Int, optimizations: Boolean): PageStats {
     val results = List(numberOfThreads) {
         CompletableFuture<PageStats>()
     }
@@ -64,7 +65,7 @@ fun processFiles(files: List<File>, numberOfThreads: Int): PageStats {
     parsersPool.forEach { it.start() }
 
     val workersPool = results.map { result ->
-        Thread(PageWorker(pagesQueue, result))
+        Thread(PageWorker(pagesQueue, result, optimizations))
     }
     workersPool.forEach { it.start() }
 
@@ -73,5 +74,5 @@ fun processFiles(files: List<File>, numberOfThreads: Int): PageStats {
 
     return results
             .mapNotNull { it.get() }
-            .mergeAll()
+            .mergeAll(optimizations)
 }
