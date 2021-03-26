@@ -52,7 +52,7 @@ class TestRandom {
 
     @Test
     fun `real XML with random optimizations`() {
-        testCorrectness(threads = 2)
+        testCorrectness(threads = 4)
     }
 
     @Test
@@ -60,9 +60,9 @@ class TestRandom {
         val inputFileName = "/Users/maksimmartynov/Desktop/work/Programming/SPbSU/OOP/wiki-stat-cyber-bullies/src/test/resources/myTestData/ruwiki-20210301-pages-meta-current4.xml.bz2"
         val outputFileName = "/Users/maksimmartynov/Desktop/work/Programming/SPbSU/OOP/wiki-stat-cyber-bullies/src/test/resources/myTestData/stuff.txt"
         val durationDeterminant = measureTime {
-            repeat(5) {
+            repeat(3) {
                 main(arrayOf(
-                        "--threads", (it + 1).toString(),
+                        "--threads", (it + 3).toString(),
                         "--inputs", inputFileName,
                         "--output", outputFileName,
                         "--optimizations", "false"
@@ -70,9 +70,9 @@ class TestRandom {
             }
         }
         val durationRandom = measureTime {
-            repeat(5) {
+            repeat(3) {
                 main(arrayOf(
-                        "--threads", (it + 1).toString(),
+                        "--threads", (it + 3).toString(),
                         "--inputs", inputFileName,
                         "--output", outputFileName,
                         "--optimizations", "true"

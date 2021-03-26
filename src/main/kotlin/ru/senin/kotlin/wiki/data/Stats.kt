@@ -1,11 +1,13 @@
 package ru.senin.kotlin.wiki.data
 
 import java.time.LocalDateTime
+import java.util.*
+import kotlin.Comparator
 import kotlin.collections.HashMap
 import kotlin.random.Random
 
 abstract class WordStats {
-    val wordCnt: MutableMap<String, Int> = HashMap()
+    var wordCnt: MutableMap<String, Int> = HashMap()
 
     abstract fun add(word: String, delta: Int = 1)
 
@@ -59,18 +61,24 @@ class DeterminantWordStats: WordStats() {
 }
 
 class RandomWordStats : WordStats() {
-    private var maxCnt = 0
+    private var cnt = 0
+    private val maxCnt = 100000
 
     override fun add(word: String, delta: Int) {
-         if (word.length > 16 || word.startsWith("й"))
-           return
         val prev = wordCnt[word] ?: 0
-        if ((prev + delta) shl 13 < maxCnt) {
-          wordCnt.remove(word)
-            return
-        }
         wordCnt[word] = prev + delta
-        maxCnt = maxOf(maxCnt, prev + delta)
+        cnt++
+        if (cnt == maxCnt) {
+            reduce()
+            cnt = 0
+        }
+    }
+
+    private fun reduce() {
+        val list = wordCnt.entries.map { it.toPair() }.toMutableList()
+        val comparator = compareBy<Pair<String, Int>> { -it.second }.then(compareBy { it.first })
+        val half = list.findKthElement(minOf(maxCnt / 2, list.size), comparator)
+        wordCnt = wordCnt.filterValues { it >= half!!.second } as MutableMap<String, Int>
     }
 
     override infix fun merge(other: WordStats) {
@@ -161,7 +169,7 @@ class PageStats(private val optimizations: Boolean) {
     var bodyStats: WordStats
     init {
         if (optimizations) {
-            titleStats = RandomWordStats()
+            titleStats = DeterminantWordStats()
             bodyStats = RandomWordStats()
         }
         else {
