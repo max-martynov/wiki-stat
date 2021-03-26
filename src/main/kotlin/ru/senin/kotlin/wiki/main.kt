@@ -35,6 +35,14 @@ class Parameters : Arkenv() {
             it in 1..32
         }
     }
+
+    val optimizations: Boolean by argument("--optimizations") {
+        description = "Do you need power of random?"
+        mapping = {
+            it.toBoolean()
+        }
+        defaultValue = { false }
+    }
 }
 
 lateinit var parameters: Parameters

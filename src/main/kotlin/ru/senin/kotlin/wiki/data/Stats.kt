@@ -9,7 +9,7 @@ class WordStats {
     private var maxCnt = 0
     // O(1)
     private fun add(word: String, delta: Int = 1) {
-        if (word.length > 16)
+        if (word.length > 16 || word.startsWith("ю") || word.startsWith("й"))
             return
         val prev = wordCnt[word] ?: 0
         if ((prev + delta) shl 13 < maxCnt) {
