@@ -29,7 +29,7 @@ class PageParser(
 class PageWorker(
     private val queue: BlockingQueue<Page>,
     private val result: CompletableFuture<PageStats>,
-    private val optimizations: Boolean
+    optimizations: Boolean
 ) : Runnable {
     private val stats = PageStats(optimizations)
 

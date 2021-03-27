@@ -1,33 +1,25 @@
 package ru.senin.kotlin.wiki
 
-import org.apache.commons.compress.compressors.bzip2.BZip2CompressorOutputStream
 import org.junit.jupiter.api.*
 import java.io.File
-import java.io.FileOutputStream
-import java.nio.file.Paths
-import kotlin.test.Ignore
 import kotlin.test.assertEquals
 import kotlin.time.measureTime
 
 class TestRandom {
     companion object {
-        private const val TEST_DATA_PATH = "src/test/resources/testData"
-        private const val TEMPORARY_DIRECTORY = "temp_test_data"
-        private const val BZIP2_SUFFIX = ".bz2"
+        private const val TEMPORARY_DIRECTORY = "src/test/resources/myTestData/temporary"
+        private var num = 0
 
-        /*@BeforeAll
+        fun generateOutputFileName(): String = "${TEMPORARY_DIRECTORY}/output${num++}.txt"
+
+        @BeforeAll
         @JvmStatic
-        fun createArchives() {
+        fun createTemporary() {
             val testRoot = File(TEMPORARY_DIRECTORY)
             if (!testRoot.exists()){
                 testRoot.mkdirs()
             }
-            File(TEST_DATA_PATH).listFiles().orEmpty().filter{ it.extension == "xml" }.forEach {
-                createTemporaryBzip2File(it)
-            }
-            // create invalid Bzip2 file
-            File("invalid".toBzip2Inputs()).writeText("Превед, Медвед!")
-        }*/
+        }
 
         @AfterAll
         @JvmStatic
@@ -35,73 +27,60 @@ class TestRandom {
             File(TEMPORARY_DIRECTORY).deleteRecursively()
         }
 
-        private fun String.toBzip2Inputs(): String = this.split(',').joinToString(",") {
-            Paths.get(TEMPORARY_DIRECTORY).resolve(it + BZIP2_SUFFIX).toString()
+        fun toBzip2(s: String): String {
+            val prefix = "src/test/resources/myTestData/"
+            val suffix = ".xml.bz2"
+            return prefix + s + suffix
         }
 
-        private fun createTemporaryBzip2File(file: File) {
-            val input = file.inputStream()
-            input.use {
-                val output = BZip2CompressorOutputStream(FileOutputStream(file.name.toBzip2Inputs()))
-                output.use {
-                    input.copyTo(output)
-                }
-            }
-        }
     }
 
-    @Test
-    fun `real XML with random optimizations`() {
-        testCorrectness(threads = 4)
-    }
+    private val files = listOf(
+            "ruwiki-20210301-pages-meta-current4", //small
+            "ruwiki-20210301-pages-meta-current1", //medium
+            "ruwiki-20210301-pages-meta-current2", //big
+            "ruwiki-20210301-pages-meta-current6" //huge
+    )
 
     @Test
-    fun `test effectiveness`() {
-        val inputFileName = "/Users/maksimmartynov/Desktop/work/Programming/SPbSU/OOP/wiki-stat-cyber-bullies/src/test/resources/myTestData/ruwiki-20210301-pages-meta-current4.xml.bz2"
-        val outputFileName = "/Users/maksimmartynov/Desktop/work/Programming/SPbSU/OOP/wiki-stat-cyber-bullies/src/test/resources/myTestData/stuff.txt"
-        val durationDeterminant = measureTime {
+    fun `test random optimizations`() {
+        testCorrectnessAndEffectiveness(inputFileName = toBzip2(files[0]) + "," + toBzip2(files[1]))
+    }
+
+    private fun testCorrectnessAndEffectiveness(inputFileName: String) {
+        val expected = generateOutputFileName()
+        val actual = generateOutputFileName()
+
+        val durationDeterministic = measureTime {
             repeat(3) {
                 main(arrayOf(
-                        "--threads", (it + 3).toString(),
+                        "--threads", (it + 1).toString(),
                         "--inputs", inputFileName,
-                        "--output", outputFileName,
+                        "--output", expected,
                         "--optimizations", "false"
                 ))
             }
         }
-        val durationRandom = measureTime {
+        val durationProbabilistic = measureTime {
             repeat(3) {
                 main(arrayOf(
-                        "--threads", (it + 3).toString(),
+                        "--threads", (it + 1).toString(),
                         "--inputs", inputFileName,
-                        "--output", outputFileName,
+                        "--output", actual,
                         "--optimizations", "true"
                 ))
             }
         }
-        println("Determinant time: ${durationDeterminant}\nRandom time: ${durationRandom}\nDifference: ${durationDeterminant - durationRandom}")
-    }
-
-    private fun testCorrectness(threads: Int) {
-        val outputFileName = "/Users/maksimmartynov/Desktop/work/Programming/SPbSU/OOP/wiki-stat-cyber-bullies/src/test/resources/myTestData/ruwiki-20210301-pages-meta-current4.real.txt"
-        val args = arrayOf(
-                "--threads", threads.toString(),
-                "--inputs", "/Users/maksimmartynov/Desktop/work/Programming/SPbSU/OOP/wiki-stat-cyber-bullies/src/test/resources/myTestData/ruwiki-20210301-pages-meta-current4.xml.bz2",
-                "--output", outputFileName,
-                "--optimizations", "true"
-        )
-        main(args)
-        val expectedFileName = "/Users/maksimmartynov/Desktop/work/Programming/SPbSU/OOP/wiki-stat-cyber-bullies/src/test/resources/myTestData/ruwiki-20210301-pages-meta-current4.expected.txt"
-        assertFilesHaveSameContent(expectedFileName, outputFileName)
+        assertFilesHaveSameContent(expected, actual)
+        println("Deterministic algo time: ${durationDeterministic}\n" +
+                "Probabilistic algo time: ${durationProbabilistic}\n" +
+                "Profit: ${((durationDeterministic - durationProbabilistic) / durationDeterministic) * 100}%")
     }
 
     private fun assertFilesHaveSameContent(expectedFileName: String, actualFileName: String, message: String? = null) {
-        val actual = Paths.get(TEMPORARY_DIRECTORY).resolve(actualFileName).toFile().readText()
-        val expected = Paths.get(TEST_DATA_PATH).resolve(expectedFileName).toFile().readText()
+        val actual = File(actualFileName).readText()
+        val expected = File(expectedFileName).readText()
         assertEquals(expected, actual, message)
     }
-
-    private fun String.relativeToTemporaryDir(): String = Paths.get(TEMPORARY_DIRECTORY).resolve(this).toString()
-
 }
 

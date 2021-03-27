@@ -126,7 +126,6 @@ class AppTest {
             "--threads", threads.toString(),
             "--inputs", xmlInputs.toBzip2Inputs(),
             "--output", outputFileName.relativeToTemporaryDir(),
-                "--optimizations", "true"
         )
         main(args)
         val expectedFileName = "$outputPrefix.expected.txt"

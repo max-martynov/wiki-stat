@@ -11,91 +11,20 @@ abstract class WordStats {
 
     abstract fun add(word: String, delta: Int = 1)
 
-    abstract infix fun merge(other: WordStats)
-
-    abstract fun getTopK(k: Int): List<Pair<String, Int>>
-
-    abstract fun consume(str: String)
-
-    abstract fun topKToString(k: Int): String
-
-}
-
-class DeterminantWordStats: WordStats() {
-    // O(1)
-    override fun add(word: String, delta: Int) {
-        val prev = wordCnt[word] ?: 0
-        wordCnt[word] = prev + delta
-    }
-
-    override infix fun merge(other: WordStats) {
+    infix fun merge(other: WordStats) {
         other.wordCnt.entries.forEach { (word, cnt) ->
             add(word, cnt)
         }
     }
 
-    // Optimized to O(n + k * log k) on average
-    override fun getTopK(k: Int): List<Pair<String, Int>> {
+    fun getTopK(k: Int): List<Pair<String, Int>> {
         val list = wordCnt.entries.map { it.toPair() }.toMutableList()
         val comparator = compareBy<Pair<String, Int>> { -it.second }.then(compareBy { it.first })
         list.findKthElement(minOf(k, list.size), comparator)
         return list.take(k).sortedWith(comparator)
     }
 
-    override fun consume(str: String) {
-        str
-            .split(" ")
-            .filter { it.isRussianWord() }
-            .forEach { token ->
-                token.split { !it.isRussianLetter() }
-                    .filter { it.length >= 3 }
-                    .forEach { add(it.toLowerCase()) }
-            }
-    }
-
-    override fun topKToString(k: Int): String =
-        getTopK(k)
-            .joinToString(separator = "") {
-                "${it.second} ${it.first}\n"
-            }
-}
-
-class RandomWordStats : WordStats() {
-    private var cnt = 0
-    private val maxCnt = 100000
-
-    override fun add(word: String, delta: Int) {
-        val prev = wordCnt[word] ?: 0
-        wordCnt[word] = prev + delta
-        cnt++
-        if (cnt == maxCnt) {
-            reduce()
-            cnt = 0
-        }
-    }
-
-    private fun reduce() {
-        val list = wordCnt.entries.map { it.toPair() }.toMutableList()
-        val comparator = compareBy<Pair<String, Int>> { -it.second }.then(compareBy { it.first })
-        val half = list.findKthElement(minOf(maxCnt / 2, list.size), comparator)
-        wordCnt = wordCnt.filterValues { it >= half!!.second } as MutableMap<String, Int>
-    }
-
-    override infix fun merge(other: WordStats) {
-        other.wordCnt.entries.forEach { (word, cnt) ->
-            add(word, cnt)
-        }
-    }
-
-    // Optimized to O(n + k * log k) on average
-    override fun getTopK(k: Int): List<Pair<String, Int>> {
-        val list = wordCnt.entries.map { it.toPair() }.toMutableList()
-        val comparator = compareBy<Pair<String, Int>> { -it.second }.then(compareBy { it.first })
-        list.findKthElement(minOf(k, list.size), comparator)
-        return list.take(k).sortedWith(comparator)
-    }
-
-    override fun consume(str: String) {
+    fun consume(str: String) {
         str
                 .split(" ")
                 .filter { it.isRussianWord() }
@@ -106,11 +35,47 @@ class RandomWordStats : WordStats() {
                 }
     }
 
-    override fun topKToString(k: Int): String =
+    fun topKToString(k: Int): String =
             getTopK(k)
                     .joinToString(separator = "") {
                         "${it.second} ${it.first}\n"
                     }
+
+}
+
+class DeterminantWordStats: WordStats() {
+    override fun add(word: String, delta: Int) {
+        val prev = wordCnt[word] ?: 0
+        wordCnt[word] = prev + delta
+    }
+}
+
+class RandomWordStats : WordStats() {
+    private var curSize = 0
+    private val maxSize = 100000
+    private val constantPart = 50000
+
+    override fun add(word: String, delta: Int) {
+        if (word.length > 16)
+            return
+        val prev = wordCnt[word] ?: 0
+        if (prev == 0)
+            curSize++
+        wordCnt[word] = prev + delta
+        if (curSize == maxSize) {
+            reduce()
+        }
+    }
+
+    private fun reduce() {
+        val list = wordCnt.entries.map { it.toPair() }.toMutableList()
+        val comparator = compareBy<Pair<String, Int>> { -it.second }.then(compareBy { it.first })
+        val half = list.findKthElement(constantPart, comparator)
+        for (i in constantPart until curSize) {
+            wordCnt.remove(list[i].first)
+        }
+        curSize = constantPart
+    }
 }
 
 class SizeStats {
