@@ -1,26 +1,23 @@
 package ru.senin.kotlin.wiki.data
 
 import java.time.LocalDateTime
+import java.util.*
+import kotlin.Comparator
 import kotlin.collections.HashMap
 import kotlin.random.Random
 
-class WordStats {
-    private val wordCnt: MutableMap<String, Int> = HashMap()
+abstract class WordStats {
+    var wordCnt: MutableMap<String, Int> = HashMap()
 
-    // O(1)
-    private fun add(word: String) {
-        val prev = wordCnt[word] ?: 0
-        wordCnt[word] = prev + 1
-    }
+    abstract fun add(word: String, delta: Int = 1)
 
     infix fun merge(other: WordStats) {
         other.wordCnt.entries.forEach { (word, cnt) ->
-            wordCnt[word] = wordCnt.getOrDefault(word, 0) + cnt
+            add(word, cnt)
         }
     }
 
-    // Optimized to O(n + k * log k) on average
-    private fun getTopK(k: Int): List<Pair<String, Int>> {
+    fun getTopK(k: Int): List<Pair<String, Int>> {
         val list = wordCnt.entries.map { it.toPair() }.toMutableList()
         val comparator = compareBy<Pair<String, Int>> { -it.second }.then(compareBy { it.first })
         list.findKthElement(minOf(k, list.size), comparator)
@@ -29,20 +26,56 @@ class WordStats {
 
     fun consume(str: String) {
         str
-            .split(" ")
-            .filter { it.isRussianWord() }
-            .forEach { token ->
-                token.split { !it.isRussianLetter() }
-                    .filter { it.length >= 3 }
-                    .forEach { add(it.toLowerCase()) }
-            }
+                .split(" ")
+                .filter { it.isRussianWord() }
+                .forEach { token ->
+                    token.split { !it.isRussianLetter() }
+                            .filter { it.length >= 3 }
+                            .forEach { add(it.toLowerCase()) }
+                }
     }
 
     fun topKToString(k: Int): String =
-        getTopK(k)
-            .joinToString(separator = "") {
-                "${it.second} ${it.first}\n"
-            }
+            getTopK(k)
+                    .joinToString(separator = "") {
+                        "${it.second} ${it.first}\n"
+                    }
+
+}
+
+class DeterminantWordStats: WordStats() {
+    override fun add(word: String, delta: Int) {
+        val prev = wordCnt[word] ?: 0
+        wordCnt[word] = prev + delta
+    }
+}
+
+class RandomWordStats : WordStats() {
+    private var curSize = 0
+    private val maxSize = 100000
+    private val constantPart = 50000
+
+    override fun add(word: String, delta: Int) {
+        if (word.length > 16)
+            return
+        val prev = wordCnt[word] ?: 0
+        if (prev == 0)
+            curSize++
+        wordCnt[word] = prev + delta
+        if (curSize == maxSize) {
+            reduce()
+        }
+    }
+
+    private fun reduce() {
+        val list = wordCnt.entries.map { it.toPair() }.toMutableList()
+        val comparator = compareBy<Pair<String, Int>> { -it.second }.then(compareBy { it.first })
+        val half = list.findKthElement(constantPart, comparator)
+        for (i in constantPart until curSize) {
+            wordCnt.remove(list[i].first)
+        }
+        curSize = constantPart
+    }
 }
 
 class SizeStats {
@@ -96,9 +129,19 @@ class YearStats {
     }
 }
 
-class PageStats {
-    val titleStats = WordStats()
-    val bodyStats = WordStats()
+class PageStats(private val optimizations: Boolean) {
+    var titleStats: WordStats
+    var bodyStats: WordStats
+    init {
+        if (optimizations) {
+            titleStats = DeterminantWordStats()
+            bodyStats = RandomWordStats()
+        }
+        else {
+            titleStats = DeterminantWordStats()
+            bodyStats = DeterminantWordStats()
+        }
+    }
     val sizeStats = SizeStats()
     val yearStats = YearStats()
 
@@ -117,8 +160,8 @@ class PageStats {
     }
 }
 
-fun Iterable<PageStats>.mergeAll(): PageStats {
-    val result = PageStats()
+fun Iterable<PageStats>.mergeAll(optimizations: Boolean): PageStats {
+    val result = PageStats(optimizations)
     forEach { result.merge(it) }
     return result
 }

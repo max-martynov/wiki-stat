@@ -2,6 +2,7 @@ package ru.senin.kotlin.wiki
 
 import org.apache.commons.compress.compressors.bzip2.BZip2CompressorOutputStream
 import org.junit.jupiter.api.*
+import ru.senin.kotlin.wiki.AppTest.Companion.toBzip2Inputs
 import java.io.File
 import java.io.FileOutputStream
 import java.nio.file.Paths
@@ -124,7 +125,7 @@ class AppTest {
         val args = arrayOf(
             "--threads", threads.toString(),
             "--inputs", xmlInputs.toBzip2Inputs(),
-            "--output", outputFileName.relativeToTemporaryDir()
+            "--output", outputFileName.relativeToTemporaryDir(),
         )
         main(args)
         val expectedFileName = "$outputPrefix.expected.txt"
@@ -138,5 +139,6 @@ class AppTest {
     }
 
     private fun String.relativeToTemporaryDir(): String = Paths.get(TEMPORARY_DIRECTORY).resolve(this).toString()
+
 }
 
