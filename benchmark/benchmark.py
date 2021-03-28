@@ -19,12 +19,12 @@ def get_data(d_dir):
     return [join(d_dir, f) for f in listdir(d_dir) if isfile(join(d_dir, f)) and f.endswith(f_format)]
 
 
-def measure(data, threads, extra_memory):
+def measure(data, threads, extra_memory, xml_parser):
     start = time.time()
     data_str = ",".join(data)
     system("export GRADLE_OPTS=\"{}\"".format("-Xms12g -Xmx12g" if extra_memory else ""))
-    args = './gradlew run --args="--inputs {} --threads {}"'\
-        .format(data_str, threads)
+    args = './gradlew run --args="--inputs {} --threads {} --parser {}"'\
+        .format(data_str, threads, xml_parser)
     print(args)
     process = Popen(shlex.split(args), stdout=PIPE, stderr=PIPE)
     _, stderr = process.communicate()
@@ -52,6 +52,7 @@ def main():
     parser.add_argument("--data", help="data directory", default=DEFAULT_DATA_DIR, type=str)
     parser.add_argument("--out", help="output file", default=DEFAULT_OUTPUT_FILE, type=str)
     parser.add_argument("--mem", help="allocate extra memory", action="store_true")
+    parser.add_argument("--parser", help="choose parser", type=str, default="SAX")
     args = parser.parse_args()
 
     min_threads = args.min
@@ -59,12 +60,13 @@ def main():
     d_dir = args.data
     output = args.out
     extra_memory = args.mem
+    xml_parser = args.parser
 
     data = get_data(d_dir)
     x = []
     y = []
     for threads in range(min_threads, max_threads + 1):
-        res = measure(data, threads, extra_memory)
+        res = measure(data, threads, extra_memory, xml_parser)
         print("Ran {} threads in {} s".format(threads, res))
         x.append(threads)
         y.append(res)

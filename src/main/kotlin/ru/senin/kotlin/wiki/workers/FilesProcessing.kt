@@ -1,15 +1,18 @@
 package ru.senin.kotlin.wiki.workers
 
+import org.apache.commons.compress.compressors.bzip2.BZip2CompressorInputStream
 import ru.senin.kotlin.wiki.data.*
-import ru.senin.kotlin.wiki.parser.Bz2XMLParser
 import ru.senin.kotlin.wiki.parser.Parser
+import java.io.BufferedInputStream
 import java.io.File
+import java.io.InputStream
 import java.util.concurrent.*
 
 class PageParser(
-        private val files: BlockingQueue<File>,
-        private val pages: BlockingQueue<Page>,
-): Runnable {
+    private val files: BlockingQueue<File>,
+    private val pages: BlockingQueue<Page>,
+    private val parserFactory: (InputStream) -> Parser
+) : Runnable {
     override fun run() {
         while (!files.isEmpty()) {
             val file = files.take()
@@ -17,8 +20,14 @@ class PageParser(
         }
     }
 
+    private val bufferSize = 8192 * 24
+
     private fun processFile(file: File) {
-        val parser = Bz2XMLParser(file.inputStream())
+        val parser = parserFactory(
+            BZip2CompressorInputStream(
+                BufferedInputStream(file.inputStream(), bufferSize)
+            )
+        )
         parser.onPage { page ->
             pages.add(page)
         }
@@ -52,15 +61,21 @@ class PageWorker(
     }
 }
 
-fun processFiles(files: List<File>, numberOfThreads: Int, optimizations: Boolean): PageStats {
-    val results = List(numberOfThreads) {
+fun processFiles(
+    files: List<File>,
+    parserPoolSize: Int,
+    workerPoolSize: Int,
+    parserFactory: (InputStream) -> Parser,
+    optimizations: Boolean
+): PageStats {
+    val results = List(workerPoolSize) {
         CompletableFuture<PageStats>()
     }
     val filesQueue = LinkedBlockingQueue(files)
     val pagesQueue = LinkedBlockingQueue<Page>()
 
-    val parsersPool = List(numberOfThreads) {
-        Thread(PageParser(filesQueue, pagesQueue))
+    val parsersPool = List(parserPoolSize) {
+        Thread(PageParser(filesQueue, pagesQueue, parserFactory))
     }
     parsersPool.forEach { it.start() }
 
