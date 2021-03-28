@@ -29,7 +29,7 @@ tasks.withType<Test>().all {
     useJUnitPlatform()
 }
 
-tasks.withType<KotlinCompile>() {
+tasks.withType<KotlinCompile> {
     kotlinOptions.jvmTarget = "1.8"
 }
 
@@ -37,4 +37,8 @@ kotlin.sourceSets.all {
     languageSettings.apply {
         useExperimentalAnnotation("kotlin.time.ExperimentalTime")
     }
+}
+
+application {
+    applicationDefaultJvmArgs += listOf("-Xmx=12g")
 }
