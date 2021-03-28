@@ -42,7 +42,7 @@ class Parameters : Arkenv() {
     val parserType: ParserType by argument("--parser", "-p") {
         description = "Choose preferred parser. " +
                 "Available are: ${ParserType.values().joinToString { it.name }}"
-        defaultValue = { ParserType.SAX }
+        defaultValue = { ParserType.VTD }
         mapping = {
             when (it) {
                 ParserType.SAX.name -> ParserType.SAX
@@ -83,7 +83,7 @@ fun printResultToFile(result: PageStats, file: File) {
 }
 
 fun main(args: Array<String>) {
-    val maxParsingThreads = 5
+    val maxParsingThreads = 8
     try {
         parameters = Parameters().parse(args)
 

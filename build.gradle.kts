@@ -40,5 +40,5 @@ kotlin.sourceSets.all {
 }
 
 application {
-    applicationDefaultJvmArgs += listOf("-Xmx=12g")
+    applicationDefaultJvmArgs += listOf("-Xmx12g")
 }
