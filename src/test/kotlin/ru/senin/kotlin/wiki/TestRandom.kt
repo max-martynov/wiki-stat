@@ -2,6 +2,7 @@ package ru.senin.kotlin.wiki
 
 import org.junit.jupiter.api.*
 import java.io.File
+import kotlin.test.Ignore
 import kotlin.test.assertEquals
 import kotlin.time.measureTime
 
@@ -45,9 +46,12 @@ class TestRandom {
 
     /**
      * To run this test you have to download
-     * necessary files in "src/test/resources/myTestData" folder
+     * necessary files in "src/test/resources/myTestData" folder.
+     *
+     * And don't forget to remove @Ignore annotation!
      */
 
+    @Ignore
     @Test
     fun `test random optimizations`() {
         testCorrectnessAndEffectiveness(inputFileName = toBzip2(files[0]) + "," + toBzip2(files[1]))
