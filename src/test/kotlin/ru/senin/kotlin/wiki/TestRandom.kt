@@ -39,8 +39,14 @@ class TestRandom {
             "ruwiki-20210301-pages-meta-current4", //small
             "ruwiki-20210301-pages-meta-current1", //medium
             "ruwiki-20210301-pages-meta-current2", //big
-            "ruwiki-20210301-pages-meta-current6" //huge
+            "ruwiki-20210301-pages-meta-current3", //huge
+            "ruwiki-20210301-pages-meta-current6" //enormous
     )
+
+    /**
+     * To run this test you have to download
+     * necessary files in "src/test/resources/myTestData" folder
+     */
 
     @Test
     fun `test random optimizations`() {
@@ -54,7 +60,7 @@ class TestRandom {
         val durationDeterministic = measureTime {
             repeat(3) {
                 main(arrayOf(
-                        "--threads", (it + 1).toString(),
+                        "--threads", (it + 2).toString(),
                         "--inputs", inputFileName,
                         "--output", expected,
                         "--optimizations", "false"
@@ -64,7 +70,7 @@ class TestRandom {
         val durationProbabilistic = measureTime {
             repeat(3) {
                 main(arrayOf(
-                        "--threads", (it + 1).toString(),
+                        "--threads", (it + 2).toString(),
                         "--inputs", inputFileName,
                         "--output", actual,
                         "--optimizations", "true"
