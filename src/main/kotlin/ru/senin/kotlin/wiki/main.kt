@@ -51,6 +51,14 @@ class Parameters : Arkenv() {
             }
         }
     }
+  
+    val optimizations: Boolean by argument("--optimizations") {
+        description = "Do you need power of random?"
+        mapping = {
+            it.toBoolean()
+        }
+        defaultValue = { false }
+    }
 }
 
 fun createParserFactory(parserType: ParserType): (InputStream) -> Parser =
@@ -97,7 +105,8 @@ fun main(args: Array<String>) {
                 parameters.inputs,
                 min(parameters.threads, maxParsingThreads),
                 parameters.threads,
-                createParserFactory(parameters.parserType)
+                createParserFactory(parameters.parserType),
+                parameters.optimizations
             )
 
             val file = File(parameters.output)
