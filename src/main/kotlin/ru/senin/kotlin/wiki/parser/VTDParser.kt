@@ -10,6 +10,7 @@ import ru.senin.kotlin.wiki.data.PageContents
 import java.io.BufferedInputStream
 import java.io.InputStream
 import java.text.ParseException
+import java.time.DateTimeException
 import java.time.LocalDateTime
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
@@ -29,12 +30,7 @@ class VTDParser(private val inputStream: InputStream) : Parser {
 
     private fun parseXmlUsingVtd(inputStream: InputStream) {
         val vg = VTDGenHuge()
-        println("FFFFFF")
         val buffer = VTDInputStreamBuffer(inputStream)
-//        println(buffer.byteAt(0L))
-//        val bf = XMLMemMappedBuffer()
-//        vg.parseFile("src/test/resources/testData/big.xml", false, VTDGenHuge.MEM_MAPPED)
-//        bf.readFile("src/test/resources/testData/big.xml")
         vg.setDoc(buffer)
         vg.parse(false)
         val vn = vg.nav
@@ -61,13 +57,15 @@ class VTDParser(private val inputStream: InputStream) : Parser {
                         vn.toElement(VTDNav.FIRST_CHILD, "text")
                         val bytes = vn.toNormalizedString(vn.getAttrVal("bytes")).toLong()
 
-                        val text = vn.toNormalizedString(vn.text)
+                        val text = if (bytes > 0) vn.toNormalizedString(vn.text) else ""
 
                         pageCallback(Page(title, timestamp, PageContents(bytes, text)))
 
                         vn.toElement(VTDNav.PARENT)
                         vn.toElement(VTDNav.PARENT)
-                    } catch (e: Exception) { }
+                    } catch (e: DateTimeException) {
+                        println(e)
+                    }
 
                 } while (vn.toElement(VTDNav.NEXT_SIBLING,"page"))
             }

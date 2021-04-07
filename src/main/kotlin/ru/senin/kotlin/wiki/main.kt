@@ -83,7 +83,7 @@ fun printResultToFile(result: PageStats, file: File) {
 }
 
 fun main(args: Array<String>) {
-    val maxParsingThreads = 8
+    val maxParsingThreads = 3
     try {
         parameters = Parameters().parse(args)
 
