@@ -91,7 +91,6 @@ fun printResultToFile(result: PageStats, file: File) {
 }
 
 fun main(args: Array<String>) {
-    val maxParsingThreads = 3
     try {
         parameters = Parameters().parse(args)
 
@@ -103,8 +102,8 @@ fun main(args: Array<String>) {
         val duration = measureTime {
             val stats = processFiles(
                 parameters.inputs,
-                min(parameters.threads, maxParsingThreads),
-                parameters.threads,
+                parserPoolSize = parameters.threads,
+                workerPoolSize = parameters.threads,
                 createParserFactory(parameters.parserType),
                 parameters.optimizations
             )
