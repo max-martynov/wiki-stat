@@ -2,11 +2,9 @@ package ru.senin.kotlin.wiki
 
 import org.apache.commons.compress.compressors.bzip2.BZip2CompressorOutputStream
 import org.junit.jupiter.api.*
-import ru.senin.kotlin.wiki.AppTest.Companion.toBzip2Inputs
 import java.io.File
 import java.io.FileOutputStream
 import java.nio.file.Paths
-import kotlin.test.Ignore
 import kotlin.test.assertEquals
 
 class AppTest {
@@ -78,7 +76,6 @@ class AppTest {
     }
 
     @Test
-    @Ignore
     @Timeout(TIMEOUT)
     fun `wrong nesting of tags in XML`() {
         testInputs("wrong-nesting.xml", threads = 1)

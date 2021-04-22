@@ -14,8 +14,8 @@ class PageParser(
     private val parserFactory: (InputStream) -> Parser
 ) : Runnable {
     override fun run() {
-        while (!files.isEmpty()) {
-            val file = files.take()
+        while (true) {
+            val file = files.poll() ?: break
             processFile(file)
         }
     }

@@ -77,7 +77,7 @@ class VTDInputStreamBuffer(private val inputStream: InputStream) : IByteBuffer {
     }
 
     companion object {
-        private const val pageSizePower = 27
+        private const val pageSizePower = 30
         private const val pageSize = (1 shl pageSizePower)
         private const val pageSizeLowerBits = (pageSize - 1).toLong()
         private const val firstPageSize = pageSize
