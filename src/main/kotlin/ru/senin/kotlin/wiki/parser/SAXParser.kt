@@ -12,6 +12,9 @@ import java.time.LocalDateTime
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 import java.io.File
+import javax.xml.XMLConstants
+import javax.xml.validation.SchemaFactory
+import kotlin.system.exitProcess
 
 private class PageHandler(private val pageCallback: (Page) -> Unit) : DefaultHandler() {
     companion object {
@@ -59,8 +62,8 @@ private class PageHandler(private val pageCallback: (Page) -> Unit) : DefaultHan
             TIMESTAMP_TAG -> {
                 try {
                     val timestamp = LocalDateTime.parse(
-                        elementValue.trim().dropLast(1), // dirty hack to comply with standard
-                        DateTimeFormatter.ISO_LOCAL_DATE_TIME
+                            elementValue.trim().dropLast(1), // dirty hack to comply with standard
+                            DateTimeFormatter.ISO_LOCAL_DATE_TIME
                     )
                     builder?.timestamp = timestamp.atOffset(ZoneOffset.UTC).toZonedDateTime()
                 } catch (e: ParseException) {
@@ -73,29 +76,40 @@ private class PageHandler(private val pageCallback: (Page) -> Unit) : DefaultHan
         }
     }
 
+    override fun error(e: SAXParseException) {
+        println("gg wp")
+        throw e
+    }
+
     private fun discardPage() {
         builder = null
     }
 }
 
 class SAXParser(private val inputStream: InputStream) : Parser {
-    companion object {
-        const val JAXP_SCHEMA_LANGUAGE =
-            "http://java.sun.com/xml/jaxp/properties/schemaLanguage"
-        const val W3C_XML_SCHEMA =
-            "http://www.w3.org/2001/XMLSchema"
-        const val JAXP_SCHEMA_SOURCE =
-            "http://java.sun.com/xml/jaxp/properties/schemaSource"
-    }
 
     private val factory = SAXParserFactory.newInstance().also {
-        it.isValidating = true
+        val schemaFactory = SchemaFactory.newInstance(XMLConstants.W3C_XML_SCHEMA_NS_URI)
+        val scheme = schemaFactory.newSchema(javaClass.classLoader.getResource("schema.xsd"))
+        it.schema = scheme
     }
 
-    private val saxParser = factory.newSAXParser().also {
-        val scheme = File(javaClass.classLoader.getResource("schema.xsd")?.toURI()!!)
-        it.setProperty(JAXP_SCHEMA_LANGUAGE, W3C_XML_SCHEMA)
-        it.setProperty(JAXP_SCHEMA_SOURCE, scheme)
+    private val saxParser = factory.newSAXParser()
+
+    private class MyErrorHandler : ErrorHandler {
+        override fun warning(p0: SAXParseException?) {
+            println("Warning!")
+        }
+
+        override fun error(p0: SAXParseException?) {
+            println("Warning!!")
+            throw SAXException("Error!")
+        }
+
+        override fun fatalError(p0: SAXParseException?) {
+            println("Warning!!!")
+            throw SAXException("Fatal error!")
+        }
     }
 
     private lateinit var pageCallback: (Page) -> Unit
